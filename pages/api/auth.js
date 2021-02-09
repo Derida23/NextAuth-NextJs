@@ -1,8 +1,9 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
+/* JWT secret key */
 const KEY = process.env.JWT_KEY;
-
+/* Users collection sample */
 const USERS = [
   {
     id: 1,
@@ -30,77 +31,78 @@ const USERS = [
   },
 ];
 
-export default async (req, res) => {
-  const { method } = req;
-
-  try {
-    switch (method) {
-      case "POST":
-        const { email, password } = req.body;
-
-        if (!email || !password) {
-          return res
-            .status(400)
-            .json({
+export default (req, res) => {
+  return new Promise((resolve) => {
+    const { method } = req;
+    try {
+      switch (method) {
+        case "POST":
+          /* Get Post Data */
+          const { email, password } = req.body;
+          /* Any how email or password is blank */
+          if (!email || !password) {
+            return res.status(400).json({
               status: "error",
               error: "Request missing username or password",
-            })
-            .end();
-        }
-
-        const user = await USERS.find((user) => {
-          return user.email === email;
-        });
-
-        if (!user) {
-          res
-            .status(400)
-            .json({
-              status: "error",
-              error: "User not found",
-            })
-            .end();
-        }
-
-        const userId = user.id,
-          userEmail = user.email,
-          userPassword = user.password,
-          userCreated = user.createdAt;
-
-        bcrypt.compare(password, userPassword).then((isMatch) => {
-          if (isMatch) {
-            const payload = {
-              id: userId,
-              email: userEmail,
-              createdAt: userCreated,
-            };
-
-            jwt.sign(
-              payload,
-              KEY,
-              {
-                expiresIn: 31556926, // 1 year in seconds
-              },
-              (err, token) => {
-                res
-                  .status(200)
-                  .json({ success: true, token: "Bearer " + token });
-              }
-            );
-          } else {
-            res
-              .status(400)
-              .json({ status: "error", error: "Password incorrect" });
+            });
           }
-        });
-        break;
-      case "PUT":
-        break;
-      case "PATCH":
-        break;
-      default:
+          /* Check user email in database */
+          const user = USERS.find((user) => {
+            return user.email === email;
+          });
+          /* Check if exists */
+          if (!user) {
+            /* Send error with message */
+            res.status(400).json({ status: "error", error: "User Not Found" });
+          }
+          /* Define variables */
+          const userId = user.id,
+            userEmail = user.email,
+            userPassword = user.password,
+            userCreated = user.createdAt;
+          /* Check and compare password */
+          bcrypt.compare(password, userPassword).then((isMatch) => {
+            /* User matched */
+            if (isMatch) {
+              /* Create JWT Payload */
+              const payload = {
+                id: userId,
+                email: userEmail,
+                createdAt: userCreated,
+              };
+              /* Sign token */
+              jwt.sign(
+                payload,
+                KEY,
+                {
+                  expiresIn: 31556926, // 1 year in seconds
+                },
+                (err, token) => {
+                  /* Send succes with token */
+                  res.status(200).json({
+                    success: true,
+                    token: "Bearer " + token,
+                  });
+                }
+              );
+            } else {
+              /* Send error with message */
+              res
+                .status(400)
+                .json({ status: "error", error: "Password incorrect" });
+            }
+          });
+          break;
+        case "PUT":
+          break;
+        case "PATCH":
+          break;
+        default:
+          break;
+      }
+    } catch (error) {
+      throw error;
     }
-  } catch (error) {
-    throw error;
-  }
+    return resolve();
+  });
 };
