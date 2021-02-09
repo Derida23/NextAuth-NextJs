@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import jwt from "jwt";
+import jwt from "jsonwebtoken";
 
 const KEY = process.env.JWT_KEY;
 
